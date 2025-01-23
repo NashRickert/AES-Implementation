@@ -11,18 +11,16 @@
 #define Nk 4 // # of 32 bit words comprising the key
 #define Nr 10 // number of rounds
 
-#define IN_LEN 16
+#define IN_LEN 16 // input size
 
 // A couple C macros to help with treating int arrays as bit arrays
-// Note obviously that the number of bits is 32 times the size of the int array
-// So for example, int[4] has 128 bits
 #define SetBit(A,k)     ( A[(k/32)] |= (1 << (k%32)) )  
 #define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) )
+
 // If this is nonzero, then the corresponding bit is 1
 // If it's zero, then the corresponding bit is 0
 #define TestBit(A,k)    ( A[(k/32)] & (1 << (k%32)) )
 
-// Note: to access do 16 * row + column since this is a 1d matrix
 static const uint8_t sbox[256] = {
   0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
   0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -66,10 +64,10 @@ static const uint32_t Rcon[10] = {0x00000001, 0x00000002, 0x00000004, 0x00000008
 static uint8_t* TEST_INPUT = (uint8_t*) "Two One Nine Two";
 static uint32_t* TEST_KEY = (uint32_t*) "Thats my Kung Fu";
 
-static uint8_t TEST_STATE[4][4] = {{1,2,3,4},
-			      {2, 3, 4, 5},
-			      {3, 4, 5, 6},
-			      {4, 5, 6, 7}};
+static uint8_t TEST_STATE[4][4] = {{1, 2, 3, 4},
+			           {2, 3, 4, 5},
+			           {3, 4, 5, 6},
+			           {4, 5, 6, 7}};
 
 // Works
 uint32_t* key_generation() {
@@ -188,18 +186,18 @@ uint8_t x_times(uint8_t b) {
 // Appears to work
 // Got this from chatgpt, the implementation confused me
 uint8_t mult(uint8_t b, uint8_t a) {
-    uint8_t result = 0;
-    uint8_t current = b;
-    
-    // Process each bit of a
-    while (a > 0) {
-        if (a & 1) {
-            result ^= current;
-        }
-        current = x_times(current);
-        a >>= 1;
+  uint8_t result = 0;
+  uint8_t current = b;
+  
+  // Process each bit of a
+  while (a > 0) {
+    if (a & 1) {
+      result ^= current;
     }
-    return result;
+    current = x_times(current);
+    a >>= 1;
+  }
+  return result;
 }
 
 // Appears to work
@@ -234,7 +232,7 @@ void add_round_key(uint8_t state[4][4], int round, uint32_t* w) {
 }
 
 // Appears to work
-uint8_t* unflatten_state(uint8_t state[4][4]) {
+uint8_t* flatten_state(uint8_t state[4][4]) {
   uint8_t* output = malloc(16 * sizeof(uint8_t));
   for (int c = 0; c < 4; c++) {
     for (int r = 0; r < 4; r++) {
@@ -265,7 +263,7 @@ uint8_t* cipher(uint8_t in[], uint32_t* key) {
   shift_rows(state);
   add_round_key(state, Nr, w);
   free(w);
-  return unflatten_state(state);
+  return flatten_state(state);
 }
 
 // Appears to work
@@ -303,7 +301,6 @@ void inv_mix_columns(uint8_t state[4][4]) {
   }
 }
 
-
 uint8_t* inv_cipher(uint8_t in[], uint32_t* key) {
   uint8_t state[4][4];
   for(int i = 0; i < IN_LEN; i++) {
@@ -323,32 +320,36 @@ uint8_t* inv_cipher(uint8_t in[], uint32_t* key) {
     inv_sub_bytes(state);
     add_round_key(state, 0, w);
     free(w);
-    return unflatten_state(state);
+    return flatten_state(state);
 }
 
 int main() {
   uint32_t* key = key_generation();
   
+  printf("Our message (in hex) is\n");
   for (int i = 0; i < 16; i++) {
     printf("%x ", TEST_INPUT[i]);
   }
 
-  printf("\n");
+  printf("\n\n");
 
   uint8_t* cipher_text = cipher(TEST_INPUT, key);
+  printf("Our ciphertext (in hex) is\n");
   for (int i = 0; i < 16; i++) {
     printf("%x ", cipher_text[i]);
   }
 
-  printf("\n");
+  printf("\n\n");
 
+  printf("Our decrypted message (in hex) is\n");
   uint8_t* text_conv = inv_cipher(cipher_text, key);
   for (int i = 0; i < 16; i++) {
     printf("%x ", text_conv[i]);
   }
 
+  printf("\n");
+
   free(cipher_text);
   free(text_conv);
   free(key);
-
 }
