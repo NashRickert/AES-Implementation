@@ -1,5 +1,6 @@
 // Implementation of AES 128
 
+#include <unistd.h>
 #include <assert.h>
 #include <bits/pthreadtypes.h>
 #include <time.h>
@@ -72,7 +73,7 @@ static uint8_t TEST_STATE[4][4] = {{1, 2, 3, 4},
 // Works
 uint32_t* key_generation() {
   uint32_t* key = (uint32_t*) malloc(4 * sizeof(uint32_t));
-  srand(time(0));
+  srand(time(NULL) + rand());
   for (int i = 0; i < 128; i++) {
     int r = rand() % 2;
     assert(r == 0 || r == 1);
@@ -323,33 +324,92 @@ uint8_t* inv_cipher(uint8_t in[], uint32_t* key) {
     return flatten_state(state);
 }
 
-int main() {
-  uint32_t* key = key_generation();
-  
+uint8_t* string_to_uint8_ptr(char* str) {
+  uint8_t* ptr = (uint8_t*) malloc(16 * sizeof(uint8_t));
+  mempcpy(ptr, str, 16);
+  return ptr;
+}
+
+uint32_t* string_to_uint32_ptr(char* str) {
+  uint32_t* ptr = (uint32_t*) malloc(4 * sizeof(uint32_t));
+  mempcpy(ptr, str, 16);
+  return ptr;
+}
+
+void print_hex(uint8_t* thing) {
+  for (int i = 0; i < 16; i++) {
+    printf("%x ", thing[i]);
+  }
+  printf("\n\n");
+}
+
+void print_detail(uint32_t* key, uint8_t* message) {
   printf("Our message (in hex) is\n");
-  for (int i = 0; i < 16; i++) {
-    printf("%x ", TEST_INPUT[i]);
-  }
+  print_hex(message);
+  
+  printf("Our key (in hex) is\n");
+  print_hex((uint8_t*) key);
 
-  printf("\n\n");
-
-  uint8_t* cipher_text = cipher(TEST_INPUT, key);
+  uint8_t* cipher_text = cipher(message, key);
   printf("Our ciphertext (in hex) is\n");
-  for (int i = 0; i < 16; i++) {
-    printf("%x ", cipher_text[i]);
-  }
-
-  printf("\n\n");
+  print_hex(cipher_text);
 
   printf("Our decrypted message (in hex) is\n");
   uint8_t* text_conv = inv_cipher(cipher_text, key);
-  for (int i = 0; i < 16; i++) {
-    printf("%x ", text_conv[i]);
-  }
-
-  printf("\n");
+  print_hex(text_conv);
 
   free(cipher_text);
   free(text_conv);
-  free(key);
+}
+
+void test() {
+  uint8_t message[16] = {0x12, 0x34, 0x12, 0x34,0x12, 0x34, 0x12, 0x34,0x12, 0x34, 0x12, 0x34,0x12, 0x34, 0x12, 0x34};
+  uint32_t key[4] = {0xcdabcdab, 0xcdabcdab, 0x01010101, 0x01010101};
+
+  print_detail(key, message);
+}
+
+void prob2a() {
+  uint8_t message[16] = {0x10, 0x04, 0x20, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  print_detail((uint32_t*) message, message);
+}
+
+void prob2b() {
+  
+  uint8_t key[16] = {0x10, 0x04, 0x20, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  uint32_t cipher[4] = {0x00000000,0x00000000,0x00000000,0x00000000};
+  uint8_t* message = inv_cipher((uint8_t*) cipher, (uint32_t*) key);
+
+  print_detail((uint32_t*) key, message);
+}
+
+void prob2c() {
+  uint8_t message[16] = {0x10, 0x04, 0x20, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  while (1) {
+    uint32_t* key = key_generation();
+    uint8_t* cipher_text = cipher(message, key);
+    printf("%x\n", cipher_text[15]);
+    if (cipher_text[15] == 0) {
+      print_detail(key, message);
+      free(key);
+      return;
+    }
+    free(key);
+  }
+}
+
+
+int main() {
+  /* uint32_t* key = key_generation(); */
+  
+
+  /* prob2a(); */
+  /* prob2b(); */
+  /* prob2c(); */
+
+
+  /* free(key); */
+  return EXIT_SUCCESS;
 }
