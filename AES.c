@@ -11,7 +11,6 @@
 
 #define Nk 4 // # of 32 bit words comprising the key
 #define Nr 10 // number of rounds
-
 #define IN_LEN 16 // input size
 
 // A couple C macros to help with treating int arrays as bit arrays
@@ -87,6 +86,7 @@ uint32_t* key_generation() {
   return key;
 }
 
+// works
 void print_state(uint8_t state[4][4]) {
   for (int r = 0; r < 4; r++) {
     for (int c = 0; c < 4; c++) {
@@ -402,8 +402,9 @@ void prob2c() {
 
 
 int main() {
-  /* uint32_t* key = key_generation(); */
+  uint32_t* key = key_generation();
   
+  print_hex((uint8_t*) key);
 
   /* prob2a(); */
   /* prob2b(); */
